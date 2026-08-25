@@ -368,8 +368,22 @@ struct LoginSlide: View {
                 viewModel.clearKeychain()
                 viewModel.errorMessage = "Successfully cleared keychain. Restart the app and try logging in again."
             }
+            if !viewModel.loginViewModel.logs.isEmpty {
+                Button("Copy Logs") {
+                    UIPasteboard.general.string = viewModel.loginViewModel.logs
+                }
+            }
         } message: {
-            Text(viewModel.errorMessage)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(viewModel.errorMessage)
+                if !viewModel.loginViewModel.logs.isEmpty {
+                    Text("\nDebug Logs:")
+                        .font(.headline)
+                    Text(viewModel.loginViewModel.logs)
+                        .font(.caption)
+                        .lineLimit(10)
+                }
+            }
         }
         .background(Color(UIColor.systemGroupedBackground))
         .keyboardAdaptive()
