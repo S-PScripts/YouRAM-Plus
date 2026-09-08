@@ -75,6 +75,21 @@ class WizardViewModel: ObservableObject {
     @Published var saveLoginToKeychain = UserDefaults.standard.bool(forKey: "saveLoginToKeychain") {
         didSet {
             UserDefaults.standard.set(saveLoginToKeychain, forKey: "saveLoginToKeychain")
+            // Clear keychain when toggle is turned off
+            if !saveLoginToKeychain {
+                Keychain.shared.appleAccountEmailAddress = nil
+                Keychain.shared.appleAccountPassword = nil
+            }
+        }
+    }
+    @Published var enableExtendedVirtualAddressing = UserDefaults.standard.bool(forKey: "enableExtendedVirtualAddressing") {
+        didSet {
+            UserDefaults.standard.set(enableExtendedVirtualAddressing, forKey: "enableExtendedVirtualAddressing")
+        }
+    }
+    @Published var enableDebugging = UserDefaults.standard.bool(forKey: "enableDebugging") {
+        didSet {
+            UserDefaults.standard.set(enableDebugging, forKey: "enableDebugging")
         }
     }
     @Published var anisetteServers: [AnisetteServer] = []
@@ -141,8 +156,8 @@ class WizardViewModel: ObservableObject {
         let sharedModel = DataManager.shared.model
         Keychain.shared.adiPb = nil
         Keychain.shared.identifier = nil
-        Keychain.shared.appleIDPassword = nil
-        Keychain.shared.appleIDEmailAddress = nil
+        Keychain.shared.appleAccountPassword = nil
+        Keychain.shared.appleAccountEmailAddress = nil
         AnisetteDataHelper.shared.resetClientInfo()
         sharedModel.session = nil
         sharedModel.account = nil
@@ -153,7 +168,7 @@ class WizardViewModel: ObservableObject {
     }
     
     func resetLoginState() {
-        loginViewModel.appleID = ""
+        loginViewModel.appleAccount = ""
         loginViewModel.password = ""
         loginViewModel.needVerificationCode = false
         loginViewModel.verificationCode = ""

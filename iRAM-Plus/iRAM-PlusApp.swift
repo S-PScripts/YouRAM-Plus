@@ -11,8 +11,11 @@ import SwiftUI
 struct iRAMPlusApp: App {
     init() {
         UserDefaults.standard.register(defaults: [
-            "saveLoginToKeychain": true
+            "saveLoginToKeychain": true,
+            "enableDebugging": false
         ])
+        // Migrate old credentials from appleID to appleAccount keychain keys
+        Keychain.shared.migrateOldCredentials()
     }
     
     var body: some Scene {

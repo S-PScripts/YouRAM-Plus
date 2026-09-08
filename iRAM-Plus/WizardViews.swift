@@ -194,7 +194,46 @@ struct SettingsSlide: View {
                         .labelsHidden()
                 }
                 
-                Text("Automatically save your Apple ID and password for faster login.")
+                Text("Automatically save your Apple Account and password for faster login.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding()
+            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .cornerRadius(15)
+            .padding(.horizontal)
+            
+            VStack(alignment: .leading, spacing: 15) {
+                Text("Extra Entitlements")
+                    .font(.headline)
+                
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Extended Virtual Addressing")
+                            .font(.body)
+                        Text("com.apple.developer.kernel.extended-virtual-addressing")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Toggle("", isOn: $viewModel.enableExtendedVirtualAddressing)
+                        .labelsHidden()
+                }
+                
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Debugging")
+                            .font(.body)
+                        Text("Show detailed debug logs in error alerts")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Toggle("", isOn: $viewModel.enableDebugging)
+                        .labelsHidden()
+                }
+                
+                Text("Enable more entitlements to your apps")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -248,7 +287,7 @@ struct SettingsSlide: View {
 // MARK: - Login Slide
 struct LoginSlide: View {
     @ObservedObject var viewModel: WizardViewModel
-    @State private var appleID: String = ""
+    @State private var appleAccount: String = ""
     @State private var password: String = ""
     @State private var isLoggingIn = false
     @State private var verificationCode: String = ""
@@ -278,7 +317,7 @@ struct LoginSlide: View {
                 .font(.system(size: 32, weight: .bold))
                 .foregroundStyle(.primary)
             
-            Text("Sign in with the Apple ID you used to sign your apps")
+            Text("Sign in with the Apple Account you used to sign your apps")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -286,7 +325,7 @@ struct LoginSlide: View {
             
             // Login Form
             VStack(spacing: 15) {
-                TextField("Apple ID", text: $appleID)
+                TextField("Apple Account", text: $appleAccount)
                     .textFieldStyle(.roundedBorder)
                     .autocapitalization(.none)
                     .keyboardType(.emailAddress)
@@ -368,7 +407,7 @@ struct LoginSlide: View {
                 viewModel.clearKeychain()
                 viewModel.errorMessage = "Successfully cleared keychain. Restart the app and try logging in again."
             }
-            if !viewModel.loginViewModel.logs.isEmpty {
+            if viewModel.enableDebugging && !viewModel.loginViewModel.logs.isEmpty {
                 Button("Copy Logs") {
                     UIPasteboard.general.string = viewModel.loginViewModel.logs
                 }
@@ -376,7 +415,7 @@ struct LoginSlide: View {
         } message: {
             VStack(alignment: .leading, spacing: 8) {
                 Text(viewModel.errorMessage)
-                if !viewModel.loginViewModel.logs.isEmpty {
+                if viewModel.enableDebugging && !viewModel.loginViewModel.logs.isEmpty {
                     Text("\nDebug Logs:")
                         .font(.headline)
                     Text(viewModel.loginViewModel.logs)
@@ -400,14 +439,14 @@ struct LoginSlide: View {
             if newStep == .login && previousStep != .login {
                 if viewModel.saveLoginToKeychain {
                     // Auto-fill from keychain if enabled
-                    if let savedEmail = Keychain.shared.appleIDEmailAddress {
-                        appleID = savedEmail
+                    if let savedEmail = Keychain.shared.appleAccountEmailAddress {
+                        appleAccount = savedEmail
                     }
-                    if let savedPassword = Keychain.shared.appleIDPassword {
+                    if let savedPassword = Keychain.shared.appleAccountPassword {
                         password = savedPassword
                     }
                 } else {
-                    appleID = ""
+                    appleAccount = ""
                     password = ""
                 }
                 verificationCode = ""
@@ -417,12 +456,12 @@ struct LoginSlide: View {
             previousStep = newStep
         }
         .onAppear {
-            // Also try to auto-fill on initial appearance
+            // Auto-fill from keychain on initial appearance if enabled
             if viewModel.currentStep == .login && viewModel.saveLoginToKeychain {
-                if let savedEmail = Keychain.shared.appleIDEmailAddress, appleID.isEmpty {
-                    appleID = savedEmail
+                if let savedEmail = Keychain.shared.appleAccountEmailAddress {
+                    appleAccount = savedEmail
                 }
-                if let savedPassword = Keychain.shared.appleIDPassword, password.isEmpty {
+                if let savedPassword = Keychain.shared.appleAccountPassword {
                     password = savedPassword
                 }
             }
@@ -448,7 +487,7 @@ struct LoginSlide: View {
         }
 
         isLoggingIn = true
-        viewModel.loginViewModel.appleID = appleID
+        viewModel.loginViewModel.appleAccount = appleAccount
         viewModel.loginViewModel.password = password
         
         // Connect progress callback
@@ -468,8 +507,8 @@ struct LoginSlide: View {
                     if result {
                         // Save to keychain only if toggle is enabled
                         if viewModel.saveLoginToKeychain {
-                            Keychain.shared.appleIDEmailAddress = appleID
-                            Keychain.shared.appleIDPassword = password
+                            Keychain.shared.appleAccountEmailAddress = appleAccount
+                            Keychain.shared.appleAccountPassword = password
                         }
                         viewModel.nextStep()
                     }
@@ -504,7 +543,7 @@ struct LoginSlide: View {
             let data = try Data(contentsOf: url)
             let account = try SideStoreAccountImporter.importAccount(from: data)
             
-            viewModel.loginViewModel.appleID = account.email
+            viewModel.loginViewModel.appleAccount = account.email
             viewModel.loginViewModel.password = account.password
             
             // Connect progress callback

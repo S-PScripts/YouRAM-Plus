@@ -9,7 +9,7 @@ import StosSign_API_NoCertificate
 import StosSign_Auth
 
 class LoginViewModel: ObservableObject {
-    @Published var appleID = ""
+    @Published var appleAccount = ""
     @Published var password = ""
     @Published var needVerificationCode = false
     @Published var verificationCode = ""
@@ -90,7 +90,7 @@ class LoginViewModel: ObservableObject {
                 guard let self else { return }
                 if !self.needVerificationCode {
                     self.verificationCodeHandler = nil
-                    self.appleID = ""
+                    self.appleAccount = ""
                     self.password = ""
                     self.verificationCode = ""
                     self.isLoginInProgress = false
@@ -112,7 +112,7 @@ class LoginViewModel: ObservableObject {
             await MainActor.run {
                 progressCallback?(0.4, "Authenticating with Apple")
             }
-            let (account, session) = try await AppleAPI.shared.authenticate(appleID: appleID, password: password, anisetteData: anisetteData) { [weak self] completionHandler in
+            let (account, session) = try await AppleAPI.shared.authenticate(appleID: appleAccount, password: password, anisetteData: anisetteData) { [weak self] completionHandler in
                 guard let self else {
                     completionHandler(nil)
                     return
@@ -238,7 +238,7 @@ class LoginViewModel: ObservableObject {
         // Cleanup after successful 2FA
         await MainActor.run {
             verificationCodeHandler = nil
-            appleID = ""
+            appleAccount = ""
             password = ""
             needVerificationCode = false
             verificationCode = ""

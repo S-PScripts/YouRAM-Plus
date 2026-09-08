@@ -86,8 +86,8 @@ enum SideStoreAccountImporter {
             throw SideStoreAccountImportError.invalidLocalUser
         }
         
-        Keychain.shared.appleIDEmailAddress = email
-        Keychain.shared.appleIDPassword = password
+        Keychain.shared.appleAccountEmailAddress = email
+        Keychain.shared.appleAccountPassword = password
         Keychain.shared.adiPb = adiPB
         Keychain.shared.identifier = localUser
         AnisetteDataHelper.shared.resetClientInfo()

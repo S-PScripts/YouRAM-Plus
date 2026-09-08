@@ -5,6 +5,7 @@
 //  Created by s s on 2025/3/15.
 //
 import SwiftUI
+import Foundation
 import StosSign_API_NoCertificate
 import StosSign_Auth
 
@@ -35,6 +36,8 @@ class AppIDModel : ObservableObject, Hashable {
 
         try await AppleAPI.shared.refreshAnisetteDataIfNeeded(for: session)
         
+        let enableExtendedVirtualAddressing = UserDefaults.standard.bool(forKey: "enableExtendedVirtualAddressing")
+        
         let dateFormatter = ISO8601DateFormatter()
         let httpHeaders = [
             "Content-Type": "application/vnd.api+json",
@@ -56,10 +59,67 @@ class AppIDModel : ObservableObject, Hashable {
             "X-Apple-I-TimeZone": session.anisetteData.timeZone.abbreviation()!
         ] as [String : String];
         
+        // Build capabilities array based on settings
+        var capabilities: [[String: Any]] = [
+            [
+                "relationships": [
+                    "capability": [
+                        "data": [
+                            "id": "INCREASED_MEMORY_LIMIT",
+                            "type": "capabilities"
+                        ]
+                    ]
+                ],
+                "type": "bundleIdCapabilities",
+                "attributes": [
+                    "settings": [],
+                    "enabled": true
+                ]
+            ]
+        ]
+        
+        if enableExtendedVirtualAddressing {
+            capabilities.append([
+                "relationships": [
+                    "capability": [
+                        "data": [
+                            "id": "EXTENDED_VIRTUAL_ADDRESSING",
+                            "type": "capabilities"
+                        ]
+                    ]
+                ],
+                "type": "bundleIdCapabilities",
+                "attributes": [
+                    "settings": [],
+                    "enabled": true
+                ]
+            ])
+        }
+        
+        let requestBody: [String: Any] = [
+            "data": [
+                "relationships": [
+                    "bundleIdCapabilities": [
+                        "data": capabilities
+                    ]
+                ],
+                "id": appID.identifier,
+                "attributes": [
+                    "hasExclusiveManagedCapabilities": false,
+                    "teamId": team.identifier,
+                    "bundleType": "bundle",
+                    "identifier": appID.bundleIdentifier,
+                    "seedId": team.identifier,
+                    "name": appID.name
+                ],
+                "type": "bundleIds"
+            ]
+        ]
+        
         var request = URLRequest(url: URL(string: "https://developerservices2.apple.com/services/v1/bundleIds/\(appID.identifier)")!)
         request.httpMethod = "PATCH"
         request.allHTTPHeaderFields = httpHeaders
-        request.httpBody = "{\"data\":{\"relationships\":{\"bundleIdCapabilities\":{\"data\":[{\"relationships\":{\"capability\":{\"data\":{\"id\":\"INCREASED_MEMORY_LIMIT\",\"type\":\"capabilities\"}}},\"type\":\"bundleIdCapabilities\",\"attributes\":{\"settings\":[],\"enabled\":true}}]}},\"id\":\"\(appID.identifier)\",\"attributes\":{\"hasExclusiveManagedCapabilities\":false,\"teamId\":\"\(team.identifier)\",\"bundleType\":\"bundle\",\"identifier\":\"\(appID.bundleIdentifier)\",\"seedId\":\"\(team.identifier)\",\"name\":\"\(appID.name)\"},\"type\":\"bundleIds\"}}".data(using: .utf8)
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
         
         let (data, response) = try await URLSession.shared.data(for: request)
         let responseString = String(data: data, encoding: .utf8) ?? "Unable to decode response."
@@ -70,7 +130,12 @@ class AppIDModel : ObservableObject, Hashable {
         }
         
         await MainActor.run {
-            result = "✅ Success! Increased Memory Limit capability has been enabled.\n\nAPI Response:\n\(responseString)"
+            var successMessage = "✅ Success! Increased Memory Limit capability has been enabled."
+            if enableExtendedVirtualAddressing {
+                successMessage += "\n\nExtended Virtual Addressing capability has also been enabled."
+            }
+            successMessage += "\n\nAPI Response:\n\(responseString)"
+            result = successMessage
         }
         
     }

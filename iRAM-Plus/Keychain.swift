@@ -45,35 +45,18 @@ public class Keychain
     
     fileprivate let keychain = SystemKeychain(service: Bundle.main.bundleIdentifier!)
     
+    @KeychainItem(key: "appleAccountEmailAddress")
+    public var appleAccountEmailAddress: String?
+    
+    @KeychainItem(key: "appleAccountPassword")
+    public var appleAccountPassword: String?
+    
+    // Old keychain keys for backward compatibility
     @KeychainItem(key: "appleIDEmailAddress")
-    public var appleIDEmailAddress: String?
+    private var oldAppleIDEmailAddress: String?
     
     @KeychainItem(key: "appleIDPassword")
-    public var appleIDPassword: String?
-    
-    @KeychainItem(key: "signingCertificatePrivateKey")
-    public var signingCertificatePrivateKey: Data?
-    
-    @KeychainItem(key: "signingCertificateSerialNumber")
-    public var signingCertificateSerialNumber: String?
-    
-    @KeychainItem(key: "signingCertificate")
-    public var signingCertificate: Data?
-    
-    @KeychainItem(key: "signingCertificatePassword")
-    public var signingCertificatePassword: String?
-    
-    @KeychainItem(key: "patreonAccessToken")
-    public var patreonAccessToken: String?
-    
-    @KeychainItem(key: "patreonRefreshToken")
-    public var patreonRefreshToken: String?
-    
-    @KeychainItem(key: "patreonCreatorAccessToken")
-    public var patreonCreatorAccessToken: String?
-    
-    @KeychainItem(key: "patreonAccountID")
-    public var patreonAccountID: String?
+    private var oldAppleIDPassword: String?
     
     @KeychainItem(key: "identifier")
     public var identifier: String?
@@ -87,10 +70,22 @@ public class Keychain
     
     public func reset()
     {
-        self.appleIDEmailAddress = nil
-        self.appleIDPassword = nil
-        self.signingCertificatePrivateKey = nil
-        self.signingCertificateSerialNumber = nil
+        self.appleAccountEmailAddress = nil
+        self.appleAccountPassword = nil
+        self.identifier = nil
+        self.adiPb = nil
+    }
+    
+    public func migrateOldCredentials() {
+        // If new keys are empty but old keys have values, migrate them
+        if appleAccountEmailAddress == nil && oldAppleIDEmailAddress != nil {
+            appleAccountEmailAddress = oldAppleIDEmailAddress
+            oldAppleIDEmailAddress = nil // Clear old value after migration
+        }
+        if appleAccountPassword == nil && oldAppleIDPassword != nil {
+            appleAccountPassword = oldAppleIDPassword
+            oldAppleIDPassword = nil // Clear old value after migration
+        }
     }
 }
 
