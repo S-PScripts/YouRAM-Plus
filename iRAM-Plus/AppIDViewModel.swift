@@ -36,6 +36,7 @@ class AppIDModel : ObservableObject, Hashable {
 
         try await AppleAPI.shared.refreshAnisetteDataIfNeeded(for: session)
         
+        let enableIncreasedMemoryLimit = UserDefaults.standard.bool(forKey: "enableIncreasedMemoryLimit")
         let enableExtendedVirtualAddressing = UserDefaults.standard.bool(forKey: "enableExtendedVirtualAddressing")
         
         let dateFormatter = ISO8601DateFormatter()
@@ -60,8 +61,10 @@ class AppIDModel : ObservableObject, Hashable {
         ] as [String : String];
         
         // Build capabilities array based on settings
-        var capabilities: [[String: Any]] = [
-            [
+        var capabilities: [[String: Any]] = []
+        
+        if enableIncreasedMemoryLimit {
+            capabilities.append([
                 "relationships": [
                     "capability": [
                         "data": [
@@ -75,8 +78,8 @@ class AppIDModel : ObservableObject, Hashable {
                     "settings": [],
                     "enabled": true
                 ]
-            ]
-        ]
+            ])
+        }
         
         if enableExtendedVirtualAddressing {
             capabilities.append([
@@ -130,10 +133,22 @@ class AppIDModel : ObservableObject, Hashable {
         }
         
         await MainActor.run {
-            var successMessage = "✅ Success! Increased Memory Limit capability has been enabled."
-            if enableExtendedVirtualAddressing {
-                successMessage += "\n\nExtended Virtual Addressing capability has also been enabled."
+            var successMessage = "✅ Success! "
+            var enabledCapabilities: [String] = []
+            
+            if enableIncreasedMemoryLimit {
+                enabledCapabilities.append("Increased Memory Limit")
             }
+            if enableExtendedVirtualAddressing {
+                enabledCapabilities.append("Extended Virtual Addressing")
+            }
+            
+            if enabledCapabilities.count == 1 {
+                successMessage += "\(enabledCapabilities[0]) capability has been enabled."
+            } else {
+                successMessage += "\(enabledCapabilities.joined(separator: " and ")) capabilities have been enabled."
+            }
+            
             successMessage += "\n\nAPI Response:\n\(responseString)"
             result = successMessage
         }

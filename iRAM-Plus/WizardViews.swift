@@ -72,7 +72,7 @@ struct WelcomeSlide: View {
                     .font(.system(size: 42, weight: .bold))
                     .foregroundStyle(.primary)
                 
-                Text("Enable Increased Memory Limit for your sideloaded apps")
+                Text("Enable entitlements for your sideloaded apps")
                     .font(.headline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -126,6 +126,7 @@ struct SettingsSlide: View {
                 Spacer()
             }
             .padding(.horizontal)
+            .padding(.top, 10)
             
             Spacer()
             
@@ -186,37 +187,19 @@ struct SettingsSlide: View {
             .padding(.horizontal)
             
             VStack(alignment: .leading, spacing: 15) {
-                HStack {
-                    Text("Save login to keychain")
-                        .font(.headline)
-                    Spacer()
-                    Toggle("", isOn: $viewModel.saveLoginToKeychain)
-                        .labelsHidden()
-                }
-                
-                Text("Automatically save your Apple Account and password for faster login.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding()
-            .background(Color(UIColor.secondarySystemGroupedBackground))
-            .cornerRadius(15)
-            .padding(.horizontal)
-            
-            VStack(alignment: .leading, spacing: 15) {
-                Text("Extra Entitlements")
+                Text("Options")
                     .font(.headline)
                 
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Extended Virtual Addressing")
+                        Text("Save login to keychain")
                             .font(.body)
-                        Text("com.apple.developer.kernel.extended-virtual-addressing")
+                        Text("Automatically save your Apple Account and password for faster login.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Toggle("", isOn: $viewModel.enableExtendedVirtualAddressing)
+                    Toggle("", isOn: $viewModel.saveLoginToKeychain)
                         .labelsHidden()
                 }
                 
@@ -232,8 +215,43 @@ struct SettingsSlide: View {
                     Toggle("", isOn: $viewModel.enableDebugging)
                         .labelsHidden()
                 }
+            }
+            .padding()
+            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .cornerRadius(15)
+            .padding(.horizontal)
+            
+            VStack(alignment: .leading, spacing: 15) {
+                Text("Entitlements")
+                    .font(.headline)
                 
-                Text("Enable more entitlements to your apps")
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Increased Memory Limit")
+                            .font(.body)
+                        Text("Allows supported devices to provide your app with a higher memory limit")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Toggle("", isOn: $viewModel.enableIncreasedMemoryLimit)
+                        .labelsHidden()
+                }
+                
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Extended Virtual Addressing")
+                            .font(.body)
+                        Text("Increases the virtual address space available to apps for using more memory")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Toggle("", isOn: $viewModel.enableExtendedVirtualAddressing)
+                        .labelsHidden()
+                }
+                
+                Text("At least one entitlement must be enabled, both are recommended")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -601,7 +619,7 @@ struct AppsListSlide: View {
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(.primary)
             
-            Text("Select an app to add the Increased Memory Limit entitlement")
+            Text("Select an app to add entitlements to")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -685,6 +703,28 @@ struct AddCapabilitySlide: View {
     @State private var isAdding = false
     @State private var showServerResponse = false
     
+    var buttonText: String {
+        var enabledCapabilities: [String] = []
+        if viewModel.enableIncreasedMemoryLimit {
+            enabledCapabilities.append("Increased Memory Limit")
+        }
+        if viewModel.enableExtendedVirtualAddressing {
+            enabledCapabilities.append("Extended Virtual Addressing")
+        }
+        return "Add \(enabledCapabilities.joined(separator: " and "))"
+    }
+    
+    var progressText: String {
+        var enabledCapabilities: [String] = []
+        if viewModel.enableIncreasedMemoryLimit {
+            enabledCapabilities.append("Increased Memory Limit")
+        }
+        if viewModel.enableExtendedVirtualAddressing {
+            enabledCapabilities.append("Extended Virtual Addressing")
+        }
+        return "Adding \(enabledCapabilities.joined(separator: " and "))..."
+    }
+    
     var body: some View {
         VStack(spacing: 20) {
             HStack {
@@ -716,13 +756,13 @@ struct AddCapabilitySlide: View {
             }
             
             if isAdding {
-                ProgressView("Adding Increased Memory Limit...")
+                ProgressView(progressText)
                     .scaleEffect(1.2)
             } else {
                 Button(action: {
                     addCapability()
                 }) {
-                    Text("Add Increased Memory Limit")
+                    Text(buttonText)
                         .font(.headline)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -795,6 +835,17 @@ struct FinishSlide: View {
     @ObservedObject var viewModel: WizardViewModel
     @State private var showServerResponse = false
     
+    func successMessage(for app: AppIDModel) -> String {
+        var enabledCapabilities: [String] = []
+        if viewModel.enableIncreasedMemoryLimit {
+            enabledCapabilities.append("Increased Memory Limit")
+        }
+        if viewModel.enableExtendedVirtualAddressing {
+            enabledCapabilities.append("Extended Virtual Addressing")
+        }
+        return "Successfully added \(enabledCapabilities.joined(separator: " and ")) to \(app.name)"
+    }
+    
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
@@ -810,7 +861,7 @@ struct FinishSlide: View {
                     .foregroundStyle(.primary)
                 
                 if let app = viewModel.selectedApp {
-                    Text("Successfully added Increased Memory Limit to \(app.name)")
+                    Text(successMessage(for: app))
                         .font(.headline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)

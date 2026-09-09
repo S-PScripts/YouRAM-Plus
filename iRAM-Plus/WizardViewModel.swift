@@ -82,8 +82,23 @@ class WizardViewModel: ObservableObject {
             }
         }
     }
-    @Published var enableExtendedVirtualAddressing = UserDefaults.standard.bool(forKey: "enableExtendedVirtualAddressing") {
+    @Published var enableIncreasedMemoryLimit = UserDefaults.standard.object(forKey: "enableIncreasedMemoryLimit") == nil ? true : UserDefaults.standard.bool(forKey: "enableIncreasedMemoryLimit") {
         didSet {
+            // Ensure at least one entitlement is always enabled
+            if !enableIncreasedMemoryLimit && !enableExtendedVirtualAddressing {
+                enableIncreasedMemoryLimit = true
+                return
+            }
+            UserDefaults.standard.set(enableIncreasedMemoryLimit, forKey: "enableIncreasedMemoryLimit")
+        }
+    }
+    @Published var enableExtendedVirtualAddressing = UserDefaults.standard.object(forKey: "enableExtendedVirtualAddressing") == nil ? true : UserDefaults.standard.bool(forKey: "enableExtendedVirtualAddressing") {
+        didSet {
+            // Ensure at least one entitlement is always enabled
+            if !enableExtendedVirtualAddressing && !enableIncreasedMemoryLimit {
+                enableExtendedVirtualAddressing = true
+                return
+            }
             UserDefaults.standard.set(enableExtendedVirtualAddressing, forKey: "enableExtendedVirtualAddressing")
         }
     }
@@ -95,23 +110,28 @@ class WizardViewModel: ObservableObject {
     @Published var anisetteServers: [AnisetteServer] = []
     @Published var selectedAnisetteServer: AnisetteServer = AnisetteServer.custom {
         didSet {
-            if selectedAnisetteServer != AnisetteServer.custom {
-                anisetteServerURL = selectedAnisetteServer.address
-                UserDefaults.standard.set(selectedAnisetteServer.name, forKey: "selectedAnisetteServerName")
-                UserDefaults.standard.set(selectedAnisetteServer.address, forKey: "selectedAnisetteServerAddress")
-                AnisetteDataHelper.shared.url = URL(string: selectedAnisetteServer.address)
-            } else {
-                // When switching to Custom, save it as Custom with the current custom URL
-                UserDefaults.standard.set("Custom", forKey: "selectedAnisetteServerName")
-                UserDefaults.standard.set(customAnisetteURL, forKey: "selectedAnisetteServerAddress")
-                anisetteServerURL = customAnisetteURL
-                AnisetteDataHelper.shared.url = URL(string: customAnisetteURL)
+            // Only save if the value actually changed and wasn't just initialization
+            if selectedAnisetteServer != oldValue && !isRestoringServer {
+                if selectedAnisetteServer != AnisetteServer.custom {
+                    anisetteServerURL = selectedAnisetteServer.address
+                    UserDefaults.standard.set(selectedAnisetteServer.name, forKey: "selectedAnisetteServerName")
+                    UserDefaults.standard.set(selectedAnisetteServer.address, forKey: "selectedAnisetteServerAddress")
+                    AnisetteDataHelper.shared.url = URL(string: selectedAnisetteServer.address)
+                } else {
+                    // When switching to Custom, save it as Custom with the current custom URL
+                    UserDefaults.standard.set("Custom", forKey: "selectedAnisetteServerName")
+                    UserDefaults.standard.set(customAnisetteURL, forKey: "selectedAnisetteServerAddress")
+                    anisetteServerURL = customAnisetteURL
+                    AnisetteDataHelper.shared.url = URL(string: customAnisetteURL)
+                }
             }
         }
     }
+    
+    private var isRestoringServer = false
     @Published var customAnisetteURL: String = "" {
         didSet {
-            if selectedAnisetteServer == AnisetteServer.custom {
+            if selectedAnisetteServer == AnisetteServer.custom && !isRestoringServer {
                 anisetteServerURL = customAnisetteURL
                 UserDefaults.standard.set(customAnisetteURL, forKey: "customAnisetteURL")
                 UserDefaults.standard.set("Custom", forKey: "selectedAnisetteServerName")
@@ -190,24 +210,26 @@ class WizardViewModel: ObservableObject {
             await MainActor.run {
                 anisetteServers = serverList.servers
                 // Restore saved selection or default to first server
+                isRestoringServer = true
                 if let savedName = UserDefaults.standard.string(forKey: "selectedAnisetteServerName"),
                    let savedAddress = UserDefaults.standard.string(forKey: "selectedAnisetteServerAddress") {
                     // Check if saved selection was Custom
                     if savedName == "Custom" {
-                        selectedAnisetteServer = AnisetteServer.custom
                         customAnisetteURL = savedAddress
                         anisetteServerURL = savedAddress
+                        selectedAnisetteServer = AnisetteServer.custom
                     } else if let savedServer = anisetteServers.first(where: { $0.name == savedName && $0.address == savedAddress }) {
-                        selectedAnisetteServer = savedServer
                         anisetteServerURL = savedAddress
+                        selectedAnisetteServer = savedServer
                     } else if let firstServer = anisetteServers.first {
-                        selectedAnisetteServer = firstServer
                         anisetteServerURL = firstServer.address
+                        selectedAnisetteServer = firstServer
                     }
                 } else if let firstServer = anisetteServers.first {
-                    selectedAnisetteServer = firstServer
                     anisetteServerURL = firstServer.address
+                    selectedAnisetteServer = firstServer
                 }
+                isRestoringServer = false
             }
         } catch {
             print("Failed to fetch anisette servers: \(error)")
@@ -215,8 +237,10 @@ class WizardViewModel: ObservableObject {
     }
     
     init() {
-        // Load custom URL if saved
-        customAnisetteURL = UserDefaults.standard.string(forKey: "customAnisetteURL") ?? ""
+        // Load custom URL if saved without triggering didSet
+        let savedCustomURL = UserDefaults.standard.string(forKey: "customAnisetteURL") ?? ""
+        isRestoringServer = true
+        customAnisetteURL = savedCustomURL
         
         // Check if saved selection was Custom and restore it
         if let savedName = UserDefaults.standard.string(forKey: "selectedAnisetteServerName"),
@@ -227,6 +251,7 @@ class WizardViewModel: ObservableObject {
                 anisetteServerURL = savedAddress
             }
         }
+        isRestoringServer = false
         
         loginViewModel.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
