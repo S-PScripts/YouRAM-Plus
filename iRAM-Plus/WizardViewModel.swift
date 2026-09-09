@@ -146,7 +146,12 @@ class WizardViewModel: ObservableObject {
     
     func nextStep() {
         if let nextStep = WizardStep(rawValue: currentStep.rawValue + 1) {
-            currentStep = nextStep
+            // Don't allow skipping from login to addCapability - must go through apps
+            if currentStep == .login && nextStep == .addCapability {
+                currentStep = .apps
+            } else {
+                currentStep = nextStep
+            }
         }
     }
     

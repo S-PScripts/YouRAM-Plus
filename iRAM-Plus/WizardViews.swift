@@ -103,6 +103,7 @@ struct WelcomeSlide: View {
         .frame(maxWidth: .infinity)
         .background(Color(UIColor.systemGroupedBackground))
         .keyboardAdaptive()
+        .frame(maxWidth: 600)
     }
 }
 
@@ -299,6 +300,7 @@ struct SettingsSlide: View {
         .frame(maxWidth: .infinity)
         .background(Color(UIColor.systemGroupedBackground))
         .keyboardAdaptive()
+        .frame(maxWidth: 600)
         .task {
             await viewModel.fetchAnisetteServers()
         }
@@ -447,6 +449,7 @@ struct LoginSlide: View {
         }
         .background(Color(UIColor.systemGroupedBackground))
         .keyboardAdaptive()
+        .frame(maxWidth: 600)
         .onChange(of: viewModel.loginViewModel.needVerificationCode) { newValue in
             if newValue {
                 // Auto-focus the verification code field when it appears
@@ -495,7 +498,8 @@ struct LoginSlide: View {
                 try await viewModel.loginViewModel.verifyTwoFactorCode(verificationCode)
                 await MainActor.run {
                     isLoggingIn = false
-                    viewModel.nextStep()
+                    // Go directly to apps page after successful 2FA verification
+                    viewModel.goToStep(.apps)
                 }
             } catch {
                 await MainActor.run {
@@ -531,7 +535,8 @@ struct LoginSlide: View {
                             Keychain.shared.appleAccountEmailAddress = appleAccount
                             Keychain.shared.appleAccountPassword = password
                         }
-                        viewModel.nextStep()
+                        // Go directly to apps page after successful login
+                        viewModel.goToStep(.apps)
                     }
                 }
             } catch is CancellationError {
@@ -697,6 +702,7 @@ struct AppsListSlide: View {
             Text(viewModel.errorMessage)
         }
         .background(Color(UIColor.systemGroupedBackground))
+        .frame(maxWidth: 600)
     }
 }
 
@@ -775,17 +781,27 @@ struct AddCapabilitySlide: View {
                 }
                 .padding(.horizontal, 40)
                 
-                if showServerResponse {
-                    ScrollView {
-                        Text(viewModel.serverResponse)
-                            .font(.system(.caption, design: .monospaced))
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(UIColor.secondarySystemGroupedBackground))
-                            .cornerRadius(10)
+                if viewModel.enableDebugging {
+                    Button(action: {
+                        showServerResponse.toggle()
+                    }) {
+                        Text(showServerResponse ? "Hide Server Response" : "Show Server Response")
+                            .font(.subheadline)
+                            .foregroundStyle(.blue)
                     }
-                    .frame(maxHeight: 200)
-                    .padding(.horizontal)
+                    
+                    if showServerResponse {
+                        ScrollView {
+                            Text(viewModel.serverResponse)
+                                .font(.system(.caption, design: .monospaced))
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color(UIColor.secondarySystemGroupedBackground))
+                                .cornerRadius(10)
+                        }
+                        .frame(maxHeight: 200)
+                        .padding(.horizontal)
+                    }
                 }
             }
             
@@ -798,6 +814,7 @@ struct AddCapabilitySlide: View {
             Text(viewModel.errorMessage)
         }
         .background(Color(UIColor.systemGroupedBackground))
+        .frame(maxWidth: 600)
     }
     
     private func addCapability() {
@@ -897,25 +914,27 @@ struct FinishSlide: View {
             .cornerRadius(15)
             .padding(.horizontal)
             
-            Button(action: {
-                showServerResponse.toggle()
-            }) {
-                Text(showServerResponse ? "Hide Server Response" : "Show Server Response")
-                    .font(.subheadline)
-                    .foregroundStyle(.blue)
-            }
-            
-            if showServerResponse {
-                ScrollView {
-                    Text(viewModel.serverResponse)
-                        .font(.system(.caption, design: .monospaced))
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(UIColor.tertiarySystemGroupedBackground))
-                        .cornerRadius(10)
+            if viewModel.enableDebugging {
+                Button(action: {
+                    showServerResponse.toggle()
+                }) {
+                    Text(showServerResponse ? "Hide Server Response" : "Show Server Response")
+                        .font(.subheadline)
+                        .foregroundStyle(.blue)
                 }
-                .frame(maxHeight: 150)
-                .padding(.horizontal)
+                
+                if showServerResponse {
+                    ScrollView {
+                        Text(viewModel.serverResponse)
+                            .font(.system(.caption, design: .monospaced))
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color(UIColor.tertiarySystemGroupedBackground))
+                            .cornerRadius(10)
+                    }
+                    .frame(maxHeight: 150)
+                    .padding(.horizontal)
+                }
             }
             
             Spacer()
@@ -950,6 +969,7 @@ struct FinishSlide: View {
         }
         .frame(maxWidth: .infinity)
         .background(Color(UIColor.systemGroupedBackground))
+        .frame(maxWidth: 600)
     }
 }
 
@@ -978,6 +998,7 @@ struct WizardView: View {
                     SettingsSlide(viewModel: viewModel)
                 }
             }
+            .frame(maxWidth: 600) // Fixed max width for iPad optimization
         }
         .environmentObject(DataManager.shared.model)
     }

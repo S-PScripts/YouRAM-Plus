@@ -12,7 +12,9 @@ struct iRAMPlusApp: App {
     init() {
         UserDefaults.standard.register(defaults: [
             "saveLoginToKeychain": true,
-            "enableDebugging": false
+            "enableDebugging": false,
+            "enableIncreasedMemoryLimit": true,
+            "enableExtendedVirtualAddressing": false
         ])
         // Migrate old credentials from appleID to appleAccount keychain keys
         Keychain.shared.migrateOldCredentials()
