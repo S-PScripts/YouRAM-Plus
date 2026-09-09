@@ -245,6 +245,9 @@ struct SettingsSlide: View {
                         Text("Increases the virtual address space available to apps for using more memory")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                        Text("Requires paid Apple Developer Program ($99/year)")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
                     }
                     Spacer()
                     Toggle("", isOn: $viewModel.enableExtendedVirtualAddressing)

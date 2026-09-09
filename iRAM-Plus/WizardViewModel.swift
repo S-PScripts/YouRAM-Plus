@@ -92,7 +92,7 @@ class WizardViewModel: ObservableObject {
             UserDefaults.standard.set(enableIncreasedMemoryLimit, forKey: "enableIncreasedMemoryLimit")
         }
     }
-    @Published var enableExtendedVirtualAddressing = UserDefaults.standard.object(forKey: "enableExtendedVirtualAddressing") == nil ? true : UserDefaults.standard.bool(forKey: "enableExtendedVirtualAddressing") {
+    @Published var enableExtendedVirtualAddressing = UserDefaults.standard.object(forKey: "enableExtendedVirtualAddressing") == nil ? false : UserDefaults.standard.bool(forKey: "enableExtendedVirtualAddressing") {
         didSet {
             // Ensure at least one entitlement is always enabled
             if !enableExtendedVirtualAddressing && !enableIncreasedMemoryLimit {

@@ -129,7 +129,13 @@ class AppIDModel : ObservableObject, Hashable {
         
         if let httpResponse = response as? HTTPURLResponse,
            !(200..<300).contains(httpResponse.statusCode) {
-            throw "Apple API request failed with HTTP \(httpResponse.statusCode).\n\(responseString)"
+            let enableDebugging = UserDefaults.standard.bool(forKey: "enableDebugging")
+            let errorMessage = "Apple API request failed with HTTP \(httpResponse.statusCode)."
+            if enableDebugging {
+                throw "\(errorMessage)\n\(responseString)"
+            } else {
+                throw errorMessage
+            }
         }
         
         await MainActor.run {
@@ -149,7 +155,10 @@ class AppIDModel : ObservableObject, Hashable {
                 successMessage += "\(enabledCapabilities.joined(separator: " and ")) capabilities have been enabled."
             }
             
-            successMessage += "\n\nAPI Response:\n\(responseString)"
+            let enableDebugging = UserDefaults.standard.bool(forKey: "enableDebugging")
+            if enableDebugging {
+                successMessage += "\n\nAPI Response:\n\(responseString)"
+            }
             result = successMessage
         }
         
